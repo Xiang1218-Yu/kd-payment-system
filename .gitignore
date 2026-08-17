@@ -1,0 +1,16 @@
+# Dependencies
+frontend/node_modules/
+
+# Build output
+frontend/dist/
+backend/internal/handler/dist/
+backend/kd-server
+
+# OS / editor
+.DS_Store
+**/.DS_Store
+.vscode/
+.idea/
+
+# Vite
+frontend/.vite/

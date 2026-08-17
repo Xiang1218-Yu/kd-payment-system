@@ -1,0 +1,21 @@
+# Exclude build artifacts and deps from the Docker build context so it stays
+# small and cache-friendly.
+
+# Node / Vite
+frontend/node_modules
+frontend/.vite
+# NOTE: frontend/dist is intentionally NOT ignored — the prebuilt-frontend
+# build path (BUILD_FRONTEND=false) copies it from the context.
+
+# Go
+backend/internal/handler/dist
+backend/kd-server
+
+# Local dev / editor
+.git
+.gitignore
+.claude
+*.md
+!README.md
+.DS_Store
+**/.DS_Store
