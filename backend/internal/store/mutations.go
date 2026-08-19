@@ -18,6 +18,8 @@ var (
 	ErrLockerNotFound = errors.New("locker not found")
 	// ErrLockerEmpty is returned when trying to pick up from an unoccupied locker.
 	ErrLockerEmpty = errors.New("locker is empty")
+	// ErrParcelNotFound is returned when an occupied locker has no live parcel.
+	ErrParcelNotFound = errors.New("parcel for occupied locker not found")
 )
 
 // OccupyLocker marks the first free locker of the given size in the cabinet as
@@ -36,13 +38,13 @@ func (s *Store) OccupyLocker(cabinetID string, size model.Size, dropoffPrice flo
 		if l.Size == size && !l.Occupied {
 			l.Occupied = true
 			p := &model.Parcel{
-				ID:            newID("p"),
-				LockerID:      l.ID,
-				CabinetID:     c.ID,
-				RegionID:      c.RegionID,
-				Size:          size,
-				DropoffAt:     s.now(),
-				DropoffPrice:  dropoffPrice,
+				ID:           newID("p"),
+				LockerID:     l.ID,
+				CabinetID:    c.ID,
+				RegionID:     c.RegionID,
+				Size:         size,
+				DropoffAt:    s.now(),
+				DropoffPrice: dropoffPrice,
 			}
 			l.ParcelID = p.ID
 			s.parcels[p.ID] = p
@@ -65,22 +67,25 @@ func (s *Store) ReleaseLocker(lockerID string, pricePaid float64) (*model.Parcel
 	if !l.Occupied {
 		return nil, nil, ErrLockerEmpty
 	}
-	p := s.parcels[l.ParcelID]
+	p, ok := s.parcels[l.ParcelID]
+	if !ok || p == nil {
+		return nil, nil, ErrParcelNotFound
+	}
 	pickupAt := s.now()
 	l.Occupied = false
 	l.ParcelID = ""
 	delete(s.parcels, p.ID)
 
 	rec := model.PickupRecord{
-		ID:           newID("r"),
-		ParcelID:     p.ID,
-		LockerID:     l.ID,
-		CabinetID:    p.CabinetID,
-		RegionID:     p.RegionID,
-		Size:         p.Size,
-		DropoffAt:    p.DropoffAt,
-		PickupAt:     pickupAt,
-		PricePaid:    pricePaid,
+		ID:        newID("r"),
+		ParcelID:  p.ID,
+		LockerID:  l.ID,
+		CabinetID: p.CabinetID,
+		RegionID:  p.RegionID,
+		Size:      p.Size,
+		DropoffAt: p.DropoffAt,
+		PickupAt:  pickupAt,
+		PricePaid: pricePaid,
 	}
 	rec.DwellMinutes = pickupAt.Sub(p.DropoffAt).Minutes()
 	if rec.DwellMinutes < 0 {
