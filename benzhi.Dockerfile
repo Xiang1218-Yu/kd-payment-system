@@ -1,23 +1,26 @@
-# 官方 Go 镜像，自带完整工具链
-FROM golang:1.22
+# 前端构建阶段：使用官方 Node 镜像，保证 node/npm 版本与 lockfile 兼容。
+FROM node:20-bookworm-slim AS frontend-build
+WORKDIR /app/frontend
 
-# 以 Go 镜像为基础，再装 Node.js，两套工具链都保留
-RUN apt-get update && apt-get install -y curl \
-    && curl -fsSL https://deb.nodesource.com/setup_20.x | bash - \
-    && apt-get install -y nodejs \
-    && rm -rf /var/lib/apt/lists/*
+COPY frontend/package*.json ./
+RUN npm ci
+COPY frontend/ ./
+RUN npm run build
 
+# 评测镜像保留 Go 与 Node 两套工具链，方便模型在容器内继续操作源码。
+FROM golang:1.26
 WORKDIR /app
 
-# 前端依赖（frontend/ 目录）
-COPY frontend/package*.json ./frontend/
-RUN cd frontend && npm install
-
-# 复制所有项目文件
+# node:20 官方镜像将 node/npm 安装在 /usr/local；复制它以保留前端工具链，
+# 同时复用上一个阶段已经构建完成的静态资源。
+COPY --from=frontend-build /usr/local /usr/local
 COPY . .
 
-# 预编译，确认基础代码健康
-RUN go build ./... && cd frontend && npm run build
+# 后端是独立 Go module，且通过 go:embed 引用构建后的前端资源。将 dist 放到
+# embed 指令期望的位置后，再从 backend 目录执行 Go 编译。
+COPY --from=frontend-build /app/frontend/dist ./backend/internal/handler/dist
+RUN node --version && npm --version \
+    && cd backend && go build ./...
 
-# 容器启动后进入 shell，方便模型操作
+# 容器启动后进入 shell，方便模型操作。
 CMD ["bash"]
