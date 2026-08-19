@@ -18,6 +18,8 @@ var (
 	ErrLockerNotFound = errors.New("locker not found")
 	// ErrLockerEmpty is returned when trying to pick up from an unoccupied locker.
 	ErrLockerEmpty = errors.New("locker is empty")
+	// ErrParcelNotFound signals a corrupted locker-to-parcel relationship.
+	ErrParcelNotFound = errors.New("parcel not found")
 )
 
 // OccupyLocker marks the first free locker of the given size in the cabinet as
@@ -57,6 +59,15 @@ func (s *Store) OccupyLocker(cabinetID string, size model.Size, dropoffPrice flo
 func (s *Store) ReleaseLocker(lockerID string, pricePaid float64) (*model.Parcel, *model.PickupRecord, error) {
 	s.mu.Lock()
 	defer s.mu.Unlock()
+	return s.releaseLockerLocked(lockerID, pricePaid)
+}
+
+// ReleaseLockerWithStoredPrice atomically reads the parcel price and releases
+// the locker, so a pickup cannot observe a parcel that another request has
+// already removed.
+func (s *Store) ReleaseLockerWithStoredPrice(lockerID string) (*model.Parcel, *model.PickupRecord, error) {
+	s.mu.Lock()
+	defer s.mu.Unlock()
 
 	l, ok := s.lockers[lockerID]
 	if !ok {
@@ -66,6 +77,24 @@ func (s *Store) ReleaseLocker(lockerID string, pricePaid float64) (*model.Parcel
 		return nil, nil, ErrLockerEmpty
 	}
 	p := s.parcels[l.ParcelID]
+	if p == nil {
+		return nil, nil, ErrParcelNotFound
+	}
+	return s.releaseLockerLocked(lockerID, p.DropoffPrice)
+}
+
+func (s *Store) releaseLockerLocked(lockerID string, pricePaid float64) (*model.Parcel, *model.PickupRecord, error) {
+	l, ok := s.lockers[lockerID]
+	if !ok {
+		return nil, nil, ErrLockerNotFound
+	}
+	if !l.Occupied {
+		return nil, nil, ErrLockerEmpty
+	}
+	p := s.parcels[l.ParcelID]
+	if p == nil {
+		return nil, nil, ErrParcelNotFound
+	}
 	pickupAt := s.now()
 	l.Occupied = false
 	l.ParcelID = ""

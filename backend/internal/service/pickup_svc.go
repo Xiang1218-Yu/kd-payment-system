@@ -24,21 +24,7 @@ type PickupResult struct {
 
 // Pickup releases the locker with the given ID and records history.
 func (s *PickupService) Pickup(lockerID string) (PickupResult, error) {
-	// We need the parcel's quoted price before releasing; read the locker to
-	// find the parcel. The store's ReleaseLocker uses the stored parcel.
-	l := s.store.Locker(lockerID)
-	if l == nil {
-		return PickupResult{}, store.ErrLockerNotFound
-	}
-	if !l.Occupied {
-		return PickupResult{}, store.ErrLockerEmpty
-	}
-	p := s.store.Parcel(l.ParcelID)
-	price := 0.0
-	if p != nil {
-		price = p.DropoffPrice
-	}
-	_, rec, err := s.store.ReleaseLocker(lockerID, price)
+	_, rec, err := s.store.ReleaseLockerWithStoredPrice(lockerID)
 	if err != nil {
 		return PickupResult{}, err
 	}
