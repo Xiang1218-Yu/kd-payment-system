@@ -32,7 +32,7 @@ type seedRegion struct {
 	// simulating the "CBD is crowded, residential B is idle" imbalance.
 	baseUtil float64
 	// cabinetCount and the per-cabinet name pattern.
-	cabinetCount int
+	cabinetCount  int
 	cabinetPrefix string
 }
 
@@ -86,9 +86,9 @@ func seedCabinet(s *Store, sr seedRegion, idx int, now time.Time) {
 	}
 	// Locker mix: 12 S, 12 M, 6 L = 30 per cabinet.
 	counts := map[model.Size]int{
-		model.SizeSmall: 12,
+		model.SizeSmall:  12,
 		model.SizeMedium: 12,
-		model.SizeLarge: 6,
+		model.SizeLarge:  6,
 	}
 	for _, sz := range model.AllSizes() {
 		for j := 0; j < counts[sz]; j++ {
@@ -132,7 +132,21 @@ func seedCabinet(s *Store, sr seedRegion, idx int, now time.Time) {
 			if placed >= occ {
 				break
 			}
+			// Occupy the locker the way a real dropoff would: create the
+			// Parcel and link it via ParcelID, so seeded occupied lockers
+			// are indistinguishable from live ones for ReleaseLocker.
 			l.Occupied = true
+			p := &model.Parcel{
+				ID:           newID("p"),
+				LockerID:     l.ID,
+				CabinetID:    c.ID,
+				RegionID:     c.RegionID,
+				Size:         l.Size,
+				DropoffAt:    now.Add(-time.Duration(30+placed*5) * time.Minute),
+				DropoffPrice: 2.0 + pseudoRand(placed, l.ID)*3.0,
+			}
+			l.ParcelID = p.ID
+			s.parcels[p.ID] = p
 			placed++
 		}
 	}
@@ -184,15 +198,15 @@ func seedHistory(s *Store, now time.Time) {
 			}
 			sz := model.AllSizes()[int(pseudoRand(n+4000, c.ID)*3)%3]
 			s.history = append(s.history, model.PickupRecord{
-				ID:            newID("r"),
-				LockerID:      fmt.Sprintf("%s-%s1", c.ID, sz),
-				CabinetID:     c.ID,
-				RegionID:      c.RegionID,
-				Size:          sz,
-				DropoffAt:     dropoff,
-				PickupAt:      pickup,
-				DwellMinutes:  dwell.Minutes(),
-				PricePaid:     2.0 + pseudoRand(n+5000, c.ID)*3.0,
+				ID:           newID("r"),
+				LockerID:     fmt.Sprintf("%s-%s1", c.ID, sz),
+				CabinetID:    c.ID,
+				RegionID:     c.RegionID,
+				Size:         sz,
+				DropoffAt:    dropoff,
+				PickupAt:     pickup,
+				DwellMinutes: dwell.Minutes(),
+				PricePaid:    2.0 + pseudoRand(n+5000, c.ID)*3.0,
 			})
 		}
 	}

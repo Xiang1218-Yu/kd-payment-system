@@ -42,7 +42,8 @@ func errStatus(err error) int {
 		return http.StatusNotFound
 	case errors.Is(err, store.ErrNoLockerAvailable):
 		return http.StatusConflict
-	case errors.Is(err, store.ErrLockerEmpty):
+	case errors.Is(err, store.ErrLockerEmpty),
+		errors.Is(err, store.ErrParcelNotFound):
 		return http.StatusConflict
 	}
 	return http.StatusInternalServerError
