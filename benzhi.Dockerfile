@@ -3,7 +3,16 @@ FROM node:20-bookworm-slim AS frontend-build
 WORKDIR /app/frontend
 
 COPY frontend/package*.json ./
-RUN npm ci
+# 默认使用国内 npm 镜像，避免 Docker 构建时访问 registry.npmjs.org 不稳定。
+# 如需切换，可通过 --build-arg NPM_REGISTRY=... 覆盖。
+ARG NPM_REGISTRY=https://registry.npmmirror.com
+RUN --mount=type=cache,target=/root/.npm \
+    npm ci --no-audit --no-fund \
+    --registry="${NPM_REGISTRY}" \
+    --fetch-retries=5 \
+    --fetch-retry-factor=2 \
+    --fetch-retry-mintimeout=1000 \
+    --fetch-retry-maxtimeout=30000
 COPY frontend/ ./
 RUN npm run build
 
