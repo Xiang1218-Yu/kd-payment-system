@@ -85,7 +85,7 @@ func (s *Scheduler) Decide(req ScheduleRequest, now time.Time) (model.ScheduleRe
 		res.RecommendedQuote = &reqQuote
 		res.IsRedirected = false
 		res.Reason = "目标柜机及邻近柜机均无可用格口，请稍后再试"
-		return res, nil
+		return res, ErrNoCabinetCapacity
 	}
 	res.RecommendedCabinetID = best.CabinetID
 	res.RecommendedQuote = best.Quote
@@ -98,9 +98,9 @@ func (s *Scheduler) Decide(req ScheduleRequest, now time.Time) (model.ScheduleRe
 
 // neighborCand is an internal carrier for sorting candidates.
 type neighborCand struct {
-	cab       *model.Cabinet
-	distance  float64
-	stats     model.LockerStats
+	cab      *model.Cabinet
+	distance float64
+	stats    model.LockerStats
 }
 
 // bestNeighbor finds the lowest-utilization, closest cabinet with capacity,
