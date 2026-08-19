@@ -23,22 +23,14 @@ type PickupResult struct {
 }
 
 // Pickup releases the locker with the given ID and records history.
+//
+// The check, the price read, and the release are performed atomically by the
+// store (Store.PickupLocker) so that when several goroutines pick up the same
+// occupied locker at once, exactly one commits and the rest observe the locker
+// already empty — no shared locker/parcel field is read outside the store's
+// lock, which is what keeps this path race-free.
 func (s *PickupService) Pickup(lockerID string) (PickupResult, error) {
-	// We need the parcel's quoted price before releasing; read the locker to
-	// find the parcel. The store's ReleaseLocker uses the stored parcel.
-	l := s.store.Locker(lockerID)
-	if l == nil {
-		return PickupResult{}, store.ErrLockerNotFound
-	}
-	if !l.Occupied {
-		return PickupResult{}, store.ErrLockerEmpty
-	}
-	p := s.store.Parcel(l.ParcelID)
-	price := 0.0
-	if p != nil {
-		price = p.DropoffPrice
-	}
-	_, rec, err := s.store.ReleaseLocker(lockerID, price)
+	_, rec, err := s.store.PickupLocker(lockerID)
 	if err != nil {
 		return PickupResult{}, err
 	}
