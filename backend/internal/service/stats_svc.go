@@ -13,12 +13,12 @@ type StatsService struct {
 
 // Dashboard is the payload for the overview page.
 type Dashboard struct {
-	Regions         []RegionView        `json:"regions"`
+	Regions         []RegionView         `json:"regions"`
 	TopCrowded      []CabinetUtilization `json:"topCrowded"`
 	TopIdle         []CabinetUtilization `json:"topIdle"`
-	HourlyVolume    [24]int             `json:"hourlyVolume"`
-	AvgDwellMinutes float64             `json:"avgDwellMinutes"`
-	TotalPickups    int                 `json:"totalPickups"`
+	HourlyVolume    [24]int              `json:"hourlyVolume"`
+	AvgDwellMinutes float64              `json:"avgDwellMinutes"`
+	TotalPickups    int                  `json:"totalPickups"`
 }
 
 // CabinetUtilization is one row in the crowded/idle rankings.
@@ -38,10 +38,15 @@ type CabinetUtilization struct {
 func (s *StatsService) Dashboard() Dashboard {
 	var d Dashboard
 
+	regions, cabs, hist := s.store.DashboardSnapshot()
+
 	// Region aggregation.
-	for _, r := range s.store.Regions() {
+	for _, r := range regions {
 		rv := RegionView{Region: *r}
-		for _, c := range s.store.CabinetsByRegion(r.ID) {
+		for _, c := range cabs {
+			if c.RegionID != r.ID {
+				continue
+			}
 			rv.CabinetCount++
 			for _, l := range c.Lockers {
 				rv.LockerCount++
@@ -57,11 +62,14 @@ func (s *StatsService) Dashboard() Dashboard {
 	}
 
 	// Cabinet-level ranking.
-	cabs := s.store.AllCabinets()
 	all := make([]CabinetUtilization, 0, len(cabs))
+	regionNames := make(map[string]string, len(regions))
+	for _, r := range regions {
+		regionNames[r.ID] = r.Name
+	}
 	regionName := func(id string) string {
-		if r := s.store.Region(id); r != nil {
-			return r.Name
+		if name, ok := regionNames[id]; ok {
+			return name
 		}
 		return id
 	}
@@ -100,7 +108,6 @@ func (s *StatsService) Dashboard() Dashboard {
 	d.TopIdle = append(d.TopIdle, idle[:n]...)
 
 	// History aggregates.
-	hist := s.store.History()
 	d.TotalPickups = len(hist)
 	var dwellSum float64
 	for _, h := range hist {
@@ -140,7 +147,7 @@ func (s *StatsService) RegionsView() []RegionView {
 // cabinet detail view.
 type CabinetDetail struct {
 	model.Cabinet
-	RegionName string                       `json:"regionName"`
+	RegionName string                           `json:"regionName"`
 	SizeStats  map[model.Size]model.LockerStats `json:"sizeStats"`
 }
 

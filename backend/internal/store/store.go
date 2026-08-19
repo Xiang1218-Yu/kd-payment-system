@@ -21,9 +21,9 @@ type Store struct {
 	regions  map[string]*model.Region
 	cabinets map[string]*model.Cabinet
 	// lockers indexed by ID for O(1) pickup/release.
-	lockers  map[string]*model.Locker
-	parcels  map[string]*model.Parcel
-	history  []model.PickupRecord
+	lockers map[string]*model.Locker
+	parcels map[string]*model.Parcel
+	history []model.PickupRecord
 }
 
 // New returns an empty Store backed by the given clock. The clock is the
@@ -91,6 +91,33 @@ func (s *Store) Locker(id string) *model.Locker {
 	s.mu.RLock()
 	defer s.mu.RUnlock()
 	return s.lockers[id]
+}
+
+// DashboardSnapshot returns a consistent, detached view of the topology and history.
+// The snapshot is copied while the store read lock is held so callers can
+// aggregate it without retaining pointers to live locker state.
+func (s *Store) DashboardSnapshot() ([]*model.Region, []*model.Cabinet, []model.PickupRecord) {
+	s.mu.RLock()
+	defer s.mu.RUnlock()
+
+	regions := make([]*model.Region, 0, len(s.regions))
+	for _, r := range s.regions {
+		copyRegion := *r
+		regions = append(regions, &copyRegion)
+	}
+	cabinets := make([]*model.Cabinet, 0, len(s.cabinets))
+	for _, c := range s.cabinets {
+		copyCabinet := *c
+		copyCabinet.Lockers = make([]*model.Locker, len(c.Lockers))
+		for i, l := range c.Lockers {
+			copyLocker := *l
+			copyCabinet.Lockers[i] = &copyLocker
+		}
+		cabinets = append(cabinets, &copyCabinet)
+	}
+	history := make([]model.PickupRecord, len(s.history))
+	copy(history, s.history)
+	return regions, cabinets, history
 }
 
 // History returns a copy of all pickup records.
