@@ -56,6 +56,6 @@ RUN apk add --no-cache ca-certificates tzdata && \
 WORKDIR /app
 COPY --from=backend /kd-server /app/kd-server
 USER app
-EXPOSE 8080
-ENV ADDR=:8080
+EXPOSE 3600
+ENV ADDR=:3600
 ENTRYPOINT ["/app/kd-server"]

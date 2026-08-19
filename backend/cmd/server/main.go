@@ -35,7 +35,7 @@ var shanghai = func() *time.Location {
 func main() {
 	addr := os.Getenv("ADDR")
 	if addr == "" {
-		addr = ":8080"
+		addr = ":3600"
 	}
 
 	// Start the simulated clock pinned to Shanghai time, a few minutes in the

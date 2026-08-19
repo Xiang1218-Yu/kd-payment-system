@@ -36,13 +36,13 @@ func (s *Store) OccupyLocker(cabinetID string, size model.Size, dropoffPrice flo
 		if l.Size == size && !l.Occupied {
 			l.Occupied = true
 			p := &model.Parcel{
-				ID:            newID("p"),
-				LockerID:      l.ID,
-				CabinetID:     c.ID,
-				RegionID:      c.RegionID,
-				Size:          size,
-				DropoffAt:     s.now(),
-				DropoffPrice:  dropoffPrice,
+				ID:           newID("p"),
+				LockerID:     l.ID,
+				CabinetID:    c.ID,
+				RegionID:     c.RegionID,
+				Size:         size,
+				DropoffAt:    s.now(),
+				DropoffPrice: dropoffPrice,
 			}
 			l.ParcelID = p.ID
 			s.parcels[p.ID] = p
@@ -72,15 +72,15 @@ func (s *Store) ReleaseLocker(lockerID string, pricePaid float64) (*model.Parcel
 	delete(s.parcels, p.ID)
 
 	rec := model.PickupRecord{
-		ID:           newID("r"),
-		ParcelID:     p.ID,
-		LockerID:     l.ID,
-		CabinetID:    p.CabinetID,
-		RegionID:     p.RegionID,
-		Size:         p.Size,
-		DropoffAt:    p.DropoffAt,
-		PickupAt:     pickupAt,
-		PricePaid:    pricePaid,
+		ID:        newID("r"),
+		ParcelID:  p.ID,
+		LockerID:  l.ID,
+		CabinetID: p.CabinetID,
+		RegionID:  p.RegionID,
+		Size:      p.Size,
+		DropoffAt: p.DropoffAt,
+		PickupAt:  pickupAt,
+		PricePaid: pricePaid,
 	}
 	rec.DwellMinutes = pickupAt.Sub(p.DropoffAt).Minutes()
 	if rec.DwellMinutes < 0 {
