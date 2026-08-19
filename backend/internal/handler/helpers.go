@@ -40,9 +40,9 @@ func errStatus(err error) int {
 		errors.Is(err, store.ErrLockerNotFound),
 		errors.Is(err, scheduler.ErrCabinetNotFound):
 		return http.StatusNotFound
-	case errors.Is(err, store.ErrNoLockerAvailable):
-		return http.StatusConflict
-	case errors.Is(err, store.ErrLockerEmpty):
+	case errors.Is(err, store.ErrNoLockerAvailable),
+		errors.Is(err, scheduler.ErrNoCapacity),
+		errors.Is(err, store.ErrLockerEmpty):
 		return http.StatusConflict
 	}
 	return http.StatusInternalServerError

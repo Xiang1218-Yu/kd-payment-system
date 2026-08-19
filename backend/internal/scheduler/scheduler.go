@@ -79,13 +79,15 @@ func (s *Scheduler) Decide(req ScheduleRequest, now time.Time) (model.ScheduleRe
 	// Case 2: redirect to the best nearby cabinet.
 	best, alts := s.bestNeighbor(reqCab, req.Size, now)
 	if best == nil {
-		// No neighbor has room either — fall back to the requested cabinet
-		// and let the dropoff service surface the no-capacity error.
+		// No neighbor has room either — the whole region is out of capacity
+		// for this size. Surface a capacity error so the caller can
+		// distinguish "nothing occupied, try again later" from a successful
+		// dropoff. The schedule is still populated so the courier sees why.
 		res.RecommendedCabinetID = req.CabinetID
 		res.RecommendedQuote = &reqQuote
 		res.IsRedirected = false
 		res.Reason = "目标柜机及邻近柜机均无可用格口，请稍后再试"
-		return res, nil
+		return res, ErrNoCapacity
 	}
 	res.RecommendedCabinetID = best.CabinetID
 	res.RecommendedQuote = best.Quote
