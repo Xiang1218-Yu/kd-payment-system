@@ -4,9 +4,19 @@
 
 ## 标准构建、运行和测试命令
 
+后端位于 `backend/`，并通过 `go:embed` 将前端产物嵌入二进制。首次本地编译前先构建前端并复制产物：
+
 ```bash
+cd frontend
+npm install
+npm run build
+cd ..
+mkdir -p backend/internal/handler/dist
+cp -a frontend/dist/. backend/internal/handler/dist/
+
+cd backend
 go build ./...
-go run .
+go run ./cmd/server
 go test ./...
 ```
 
