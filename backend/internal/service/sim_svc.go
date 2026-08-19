@@ -52,6 +52,7 @@ func (s *SimService) Tick(d time.Duration) SimState {
 func (s *SimService) Reset() SimState {
 	if m, ok := s.clk.(*clock.Manual); ok {
 		m.Set(time.Now().In(shanghai))
+		s.store.SetClock(m)
 	}
 	return s.State()
 }
