@@ -11,7 +11,7 @@ services:
     image: kd-payment-system:latest
     container_name: kd-payment-system
     ports:
-      - "8080:8080"
+      - "3600:3600"
     environment:
-      ADDR: ":8080"
+      ADDR: ":3600"
     restart: unless-stopped

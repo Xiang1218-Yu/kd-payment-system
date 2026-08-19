@@ -87,13 +87,13 @@
 docker compose up --build
 ```
 
-浏览器打开 <http://localhost:8080>。
+浏览器打开 <http://localhost:3600>。
 
 也可单独 build：
 
 ```bash
 docker build -f backend/Dockerfile -t kd-payment-system .
-docker run -p 8080:8080 kd-payment-system
+docker run -p 3600:3600 kd-payment-system
 ```
 
 > Docker 多阶段构建：`node:20` 编译前端 → `golang:1.26` 编译后端并用 `embed.FS` 内嵌静态资源 → `alpine` 只装二进制。最终镜像仅约 26MB，单一可执行文件，零外部依赖。
@@ -110,7 +110,7 @@ docker run -p 8080:8080 kd-payment-system
 
 ```bash
 cd backend
-go run ./cmd/server        # :8080
+go run ./cmd/server        # :3600
 ```
 
 前端热更新（开发态，代理 `/api` 到后端）：
